@@ -1,0 +1,98 @@
+version: '3.4'
+
+services:
+  user:
+    build: ./userService
+    ports:
+      - 5000:5000
+    volumes:
+      - ./userService/:/var/www/backend
+    tty: true
+    links:
+      - user_database
+    depends_on:
+      - user_database
+
+  user_database:
+    image: mongo:latest
+    ports:
+    - 27017:27017
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+      - MONGO_INITDB_DATABASE=user_service
+    volumes:
+      - ./userService/config/mongo/:/docker-entrypoint-initdb.d/:ro
+
+  mongo-express:
+    image: mongo-express
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=feed_database
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
+      - ME_CONFIG_MONGODB_AUTH_DATABASE=admin
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=password
+      - ME_CONFIG_BASICAUTH_USERNAME=root
+      - ME_CONFIG_BASICAUTH_PASSWORD=root
+    links:
+      - post_database
+    ports:
+      - "8081:8081"
+
+  rabbitmq:
+    image: "rabbitmq:management-alpine"
+    hostname: "rabbit1"
+    environment:
+      RABBITMQ_DEFAULT_USER: root
+      RABBITMQ_DEFAULT_PASS: root
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      - 5672:5672
+      - 15672:15672
+
+  post:
+    build: ./postService
+    ports:
+      - 5001:5000
+    volumes:
+      - ./postService/:/var/www/backend
+    tty: true
+    links:
+      - post_database
+    depends_on:
+      - post_database
+
+  post_database:
+    image: mongo:latest
+    ports:
+      - 27018:27017
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+      - MONGO_INITDB_DATABASE=post_service
+    volumes:
+      - ./postService/config/mongo/:/docker-entrypoint-initdb.d/:ro
+
+  feed:
+    build: ./feedService
+    ports:
+      - 5002:5000
+    volumes:
+      - ./feedService/:/var/www/backend
+    tty: true
+    links:
+      - feed_database
+    depends_on:
+      - feed_database
+
+  feed_database:
+    image: mongo:latest
+    ports:
+      - 27019:27017
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+      - MONGO_INITDB_DATABASE=feed_service
+    volumes:
+      - ./feedService/config/mongo/:/docker-entrypoint-initdb.d/:ro
